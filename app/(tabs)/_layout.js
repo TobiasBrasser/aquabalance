@@ -1,6 +1,7 @@
 import { Slot, Tabs } from "expo-router" 
 import { Text } from "react-native"
 import Ionicons from "@expo/vector-icons/Ionicons" 
+import { MaterialIcons } from '@expo/vector-icons';
  
 export default function TabsLayout() { 
     return ( 
@@ -10,12 +11,7 @@ export default function TabsLayout() {
                 options={{ 
                     title: "Home", 
                     tabBarIcon: ({ color }) => ( 
-                        <Ionicons 
-                            size={28} 
-                            style={{ marginBottom: -3 }} 
-                            name="home-outline" 
-                            color={color} 
-                        /> 
+                        <MaterialIcons name="home" size={30}/>
                     ), 
                 }}
             /> 
@@ -24,12 +20,7 @@ export default function TabsLayout() {
                 options={{ 
                     title: "Progress", 
                     tabBarIcon: ({ color }) => ( 
-                        <Ionicons 
-                            size={28} 
-                            style={{ marginBottom: -3 }} 
-                            name="trending-up-outline" 
-                            color={color} 
-                        /> 
+                        <MaterialIcons name="person" size={30} color="#000" />
                     ), 
                 }}
             /> 
@@ -38,12 +29,7 @@ export default function TabsLayout() {
                 options={{ 
                     title: "History", 
                     tabBarIcon: ({ color }) => ( 
-                        <Ionicons 
-                            size={28} 
-                            style={{ marginBottom: -3 }} 
-                            name="clipboard-outline" 
-                            color={color} 
-                        /> 
+                        <MaterialIcons name="history" size={30} color="#000" />
                     ), 
                 }}
             /> 
