@@ -35,19 +35,37 @@ const HomeScreen = () => {
     }
   };
 
-  const saveData = async () => {
+  const saveData = async (key, value) => {
     try {
-      await AsyncStorage.setItem('weight', weight);
-      await AsyncStorage.setItem('height', height);
-      await AsyncStorage.setItem('activityLevel', activityLevel);
-      await AsyncStorage.setItem('climate', climate);
-      await AsyncStorage.setItem('gender', gender);
-      if (waterIntake) {
-        await AsyncStorage.setItem('waterIntake', JSON.stringify(waterIntake));
-      }
+      await AsyncStorage.setItem(key, value);
     } catch (error) {
       console.error('Failed to save data', error);
     }
+  };
+
+  const handleWeightChange = (value) => {
+    setWeight(value);
+    saveData('weight', value);
+  };
+
+  const handleHeightChange = (value) => {
+    setHeight(value);
+    saveData('height', value);
+  };
+
+  const handleActivityLevelChange = (value) => {
+    setActivityLevel(value);
+    saveData('activityLevel', value);
+  };
+
+  const handleClimateChange = (value) => {
+    setClimate(value);
+    saveData('climate', value);
+  };
+
+  const handleGenderChange = (value) => {
+    setGender(value);
+    saveData('gender', value);
   };
 
   const calculateWaterIntake = () => {
@@ -61,13 +79,10 @@ const HomeScreen = () => {
     const genderAdjustment = gender === 'male' ? 0.4 : 0; 
     const individualNeed = baseNeed + activityNeed + climateNeed + heightNeed + genderAdjustment;
 
-    const recommendedNeed = gender === 'male' ? 3.7 : 2.7;
-
-    const newWaterIntake = { individual: individualNeed.toFixed(2), recommended: recommendedNeed.toFixed(2) };
+    const newWaterIntake = { individual: individualNeed.toFixed(2) };
     setWaterIntake(newWaterIntake);
-    saveData();
+    saveData('waterIntake', JSON.stringify(newWaterIntake));
 
-    // Tastatur ausblenden
     Keyboard.dismiss();
   };
 
@@ -85,7 +100,7 @@ const HomeScreen = () => {
               style={styles.input}
               keyboardType="numeric"
               value={weight}
-              onChangeText={setWeight}
+              onChangeText={handleWeightChange}
               placeholder="Gewicht in kg"
             />
       
@@ -93,7 +108,7 @@ const HomeScreen = () => {
               style={styles.input}
               keyboardType="numeric"
               value={height}
-              onChangeText={setHeight}
+              onChangeText={handleHeightChange}
               placeholder="Größe in cm"
             />
       
@@ -101,11 +116,11 @@ const HomeScreen = () => {
             <Picker
               selectedValue={activityLevel}
               style={styles.picker}
-              onValueChange={(itemValue) => setActivityLevel(itemValue)}
+              onValueChange={handleActivityLevelChange}
             >
               <Picker.Item label="Kaum etwas" value="0" />
               <Picker.Item label="0.5 Stunde" value="0.5" />
-              <Picker.Item label="1 Stunden" value="1" />
+              <Picker.Item label="1 Stunde" value="1" />
               <Picker.Item label="2 Stunden" value="2" />
               <Picker.Item label="3+ Stunden" value="3" />
             </Picker>
@@ -114,7 +129,7 @@ const HomeScreen = () => {
             <Picker
               selectedValue={climate}
               style={styles.picker}
-              onValueChange={(itemValue) => setClimate(itemValue)}
+              onValueChange={handleClimateChange}
             >
               <Picker.Item label="Kühl" value="0" />
               <Picker.Item label="Warm" value="0.5" />
@@ -125,7 +140,7 @@ const HomeScreen = () => {
             <Picker
               selectedValue={gender}
               style={styles.picker}
-              onValueChange={(itemValue) => setGender(itemValue)}
+              onValueChange={handleGenderChange}
             >
               <Picker.Item label="Männlich" value="male" />
               <Picker.Item label="Weiblich" value="female" />
@@ -136,7 +151,6 @@ const HomeScreen = () => {
             {waterIntake && (
               <View style={styles.results}>
                 <Text>Individualisierter Wasserbedarf: {waterIntake.individual} Liter pro Tag</Text>
-                <Text>Empfohlener Wasserbedarf: {waterIntake.recommended} Liter pro Tag</Text>
               </View>
             )}
           </SafeAreaView>

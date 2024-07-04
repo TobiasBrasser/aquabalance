@@ -45,7 +45,7 @@ export default function Home() {
       setLoggedAmount(updatedLogged <= totalCapacity ? updatedLogged : totalCapacity);
       saveLoggedAmount(updatedLogged <= totalCapacity ? updatedLogged : totalCapacity); 
     }
-e
+
     setModalVisible(false);
     setInputValue('');
   };
