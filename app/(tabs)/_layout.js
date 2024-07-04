@@ -1,8 +1,9 @@
-import { Slot, Tabs } from "expo-router" 
+import { Slot, Tabs, Stack } from "expo-router" 
 import { MaterialIcons } from '@expo/vector-icons';
  
 export default function TabsLayout() { 
     return ( 
+        <>
             <Tabs
             screenOptions={{
                 tabBarHideOnKeyboard: true
@@ -34,6 +35,7 @@ export default function TabsLayout() {
                         ), 
                     }}
                 /> 
-            </Tabs> 
+            </Tabs>
+        </>
     ) 
 } 

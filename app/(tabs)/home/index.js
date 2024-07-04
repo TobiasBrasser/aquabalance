@@ -4,19 +4,22 @@ import { ProgressBar } from 'react-native-paper';
 import { StatusBar } from 'expo-status-bar';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSegments } from 'expo-router';
 
 const screenWidth = Dimensions.get('window').width;
 
 export default function Home() {
   const [modalVisible, setModalVisible] = useState(false);
   const [inputValue, setInputValue] = useState('');
-  const totalCapacity = 2500; 
+  const [totalCapacity, setTotalCapacity] = useState(2500); 
   const [loggedAmount, setLoggedAmount] = useState(0);
-  const remainingAmount = totalCapacity - loggedAmount; 
+
+  const segment = useSegments()
+
   useEffect(() => {
-  
-    loadLoggedAmount();
-  }, []);
+      loadLoggedAmount();
+      loadIndividualNeed(); 
+  }, [segment]);
 
   const loadLoggedAmount = async () => {
     try {
@@ -29,6 +32,17 @@ export default function Home() {
     }
   };
 
+  const loadIndividualNeed = async () => {
+    try {
+      const savedIndividualNeed = await AsyncStorage.getItem('@individualNeed');
+      if (savedIndividualNeed !== null) {
+        setTotalCapacity(parseFloat(savedIndividualNeed));
+      }
+    } catch (error) {
+      console.error('Error loading individual need from AsyncStorage:', error);
+    }
+  };
+
   const saveLoggedAmount = async (newAmount) => {
     try {
       await AsyncStorage.setItem('@loggedAmount', newAmount.toString());
@@ -38,7 +52,6 @@ export default function Home() {
   };
 
   const handleNewEntry = () => {
-
     const newAmount = parseFloat(inputValue);
     if (!isNaN(newAmount)) {
       const updatedLogged = loggedAmount + newAmount;
@@ -51,6 +64,7 @@ export default function Home() {
   };
 
   const progressValue = loggedAmount / totalCapacity;
+  const remainingAmount = totalCapacity - loggedAmount;
 
   return (
     <View style={styles.container}>
@@ -60,8 +74,8 @@ export default function Home() {
         <Text style={styles.newEntryText}>New Entry</Text>
       </TouchableOpacity>
       <View style={styles.progressContainer}>
-        <Text style={styles.progressText}>{loggedAmount} ml - {(progressValue * 100).toFixed(0)}%</Text>
-        <Text style={styles.remainingText}>Remaining: {remainingAmount} ml</Text>
+        <Text style={styles.progressText}>{(loggedAmount*1000).toFixed(2)} ml - {(progressValue * 100).toFixed(0)}%</Text>
+        <Text style={styles.remainingText}>Remaining: {parseFloat((remainingAmount*1000).toFixed(2))} ml</Text>
         <ProgressBar progress={progressValue} color="#01E1FF" style={styles.progressBar} />
       </View>
       <StatusBar style="auto" />
