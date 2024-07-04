@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, ScrollView, SafeAreaView, KeyboardAvoidingView, Platform, Keyboard, TouchableOpacity} from 'react-native';
+import { View, Text, TextInput, StyleSheet, ScrollView, SafeAreaView, KeyboardAvoidingView, Platform, Keyboard, TouchableOpacity } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Link, useNavigation } from 'expo-router';
+import { Link } from 'expo-router';
 
 const PRIMARY_COLOR = '#A7E6FF';
 const SECONDARY_COLOR = '#FFFFFF';
@@ -11,12 +11,12 @@ const LABEL_COLOR = '#758694';
 
 const HomeScreen = () => {
   const [weight, setWeight] = useState('');
-  const [height, setHeight] = useState('');
   const [activityLevel, setActivityLevel] = useState('0');
   const [climate, setClimate] = useState('0');
   const [gender, setGender] = useState('male');
   const [waterIntake, setWaterIntake] = useState(null);
   const [showResults, setShowResults] = useState(false);
+  const [errors, setErrors] = useState({ weight: '', activityLevel: '', climate: '', gender: '' });
 
   useEffect(() => {
     loadData();
@@ -25,7 +25,6 @@ const HomeScreen = () => {
   const loadData = async () => {
     try {
       const storedWeight = await AsyncStorage.getItem('weight');
-      const storedHeight = await AsyncStorage.getItem('height');
       const storedActivityLevel = await AsyncStorage.getItem('activityLevel');
       const storedClimate = await AsyncStorage.getItem('climate');
       const storedGender = await AsyncStorage.getItem('gender');
@@ -33,7 +32,6 @@ const HomeScreen = () => {
       const storedShowResults = await AsyncStorage.getItem('showResults');
 
       if (storedWeight) setWeight(storedWeight);
-      if (storedHeight) setHeight(storedHeight);
       if (storedActivityLevel) setActivityLevel(storedActivityLevel);
       if (storedClimate) setClimate(storedClimate);
       if (storedGender) setGender(storedGender);
@@ -55,26 +53,25 @@ const HomeScreen = () => {
   const handleWeightChange = (value) => {
     setWeight(value);
     saveData('weight', value);
-  };
-
-  const handleHeightChange = (value) => {
-    setHeight(value);
-    saveData('height', value);
+    setErrors((prevErrors) => ({ ...prevErrors, weight: '' }));
   };
 
   const handleActivityLevelChange = (value) => {
     setActivityLevel(value);
     saveData('activityLevel', value);
+    setErrors((prevErrors) => ({ ...prevErrors, activityLevel: '' }));
   };
 
   const handleClimateChange = (value) => {
     setClimate(value);
     saveData('climate', value);
+    setErrors((prevErrors) => ({ ...prevErrors, climate: '' }));
   };
 
   const handleGenderChange = (value) => {
     setGender(value);
     saveData('gender', value);
+    setErrors((prevErrors) => ({ ...prevErrors, gender: '' }));
   };
 
   const saveIndividualNeed = async (individualNeed) => {
@@ -87,14 +84,24 @@ const HomeScreen = () => {
 
   const calculateWaterIntake = () => {
     const weightInKg = parseFloat(weight);
-    const heightInCm = parseFloat(height);
+    let hasError = false;
+    let newErrors = { weight: '', activityLevel: '', climate: '', gender: '' };
 
-    const baseNeed = weightInKg * 35 / 1000;
-    const activityNeed = parseFloat(activityLevel); 
-    const climateNeed = parseFloat(climate); 
-    const heightNeed = (heightInCm - 160) * 0.01; 
+    if (!weight || isNaN(weightInKg) || weightInKg < 40 || weightInKg > 400) {
+      newErrors.weight = 'Bitte geben Sie ein gültiges Gewicht zwischen 40 und 400 kg ein.';
+      hasError = true;
+    }
+
+    if (hasError) {
+      setErrors(newErrors);
+      return;
+    }
+
+    const baseNeed = Math.min(weightInKg * 20 / 1000, 3);
+    const activityNeed = Math.min(parseFloat(activityLevel), 1.0); 
+    const climateNeed = Math.min(parseFloat(climate), 0.2); 
     const genderAdjustment = gender === 'male' ? 0.4 : 0; 
-    const individualNeed = baseNeed + activityNeed + climateNeed + heightNeed + genderAdjustment;
+    const individualNeed = baseNeed + activityNeed + climateNeed + genderAdjustment;
 
     const newWaterIntake = { individual: individualNeed.toFixed(2) };
     setWaterIntake(newWaterIntake);
@@ -111,8 +118,6 @@ const HomeScreen = () => {
     saveData('showResults', JSON.stringify(false));
   };
 
-  
-
   return (
     <View style={styles.container}>
       <KeyboardAvoidingView
@@ -128,9 +133,9 @@ const HomeScreen = () => {
                   <Text style={styles.resultText}>Individualisierter Wasserbedarf: {waterIntake.individual} Liter pro Tag</Text>
                 </View>
                 <CustomButton style={styles.editButton} title="Bearbeiten" onPress={handleEdit} />
-                <Link href = "/home">
+                <Link href="/home">
                   <Text>Fortschritt eintragen</Text>
-                  </Link>
+                </Link>
               </View>
             ) : (
               <View style={styles.formContainer}>
@@ -144,15 +149,7 @@ const HomeScreen = () => {
                   placeholder="Gewicht in kg"
                   placeholderTextColor="#ccc"
                 />
-
-                <TextInput
-                  style={styles.input}
-                  keyboardType="numeric"
-                  value={height}
-                  onChangeText={handleHeightChange}
-                  placeholder="Größe in cm"
-                  placeholderTextColor="#ccc"
-                />
+                {errors.weight ? <Text style={styles.errorText}>{errors.weight}</Text> : null}
 
                 <Text style={styles.label}>Aktivitätsniveau (Stunden der Aktivität pro Tag):</Text>
                 <Picker
@@ -161,11 +158,12 @@ const HomeScreen = () => {
                   onValueChange={handleActivityLevelChange}
                 >
                   <Picker.Item label="Kaum etwas" value="0" />
-                  <Picker.Item label="0.5 Stunde" value="0.5" />
-                  <Picker.Item label="1 Stunde" value="1" />
-                  <Picker.Item label="2 Stunden" value="2" />
-                  <Picker.Item label="3+ Stunden" value="3" />
+                  <Picker.Item label="0.5 Stunde" value="0.2" />
+                  <Picker.Item label="1 Stunde" value="0.4" />
+                  <Picker.Item label="2 Stunden" value="0.5" />
+                  <Picker.Item label="3+ Stunden" value="1" />
                 </Picker>
+                {errors.activityLevel ? <Text style={styles.errorText}>{errors.activityLevel}</Text> : null}
 
                 <Text style={styles.label}>Klima:</Text>
                 <Picker
@@ -174,9 +172,10 @@ const HomeScreen = () => {
                   onValueChange={handleClimateChange}
                 >
                   <Picker.Item label="Kühl" value="0" />
-                  <Picker.Item label="Warm" value="0.5" />
-                  <Picker.Item label="Heiß" value="1" />
+                  <Picker.Item label="Warm" value="0.2" />
+                  <Picker.Item label="Heiß" value="0.2" />
                 </Picker>
+                {errors.climate ? <Text style={styles.errorText}>{errors.climate}</Text> : null}
 
                 <Text style={styles.label}>Geschlecht:</Text>
                 <Picker
@@ -187,6 +186,7 @@ const HomeScreen = () => {
                   <Picker.Item label="Männlich" value="male" />
                   <Picker.Item label="Weiblich" value="female" />
                 </Picker>
+                {errors.gender ? <Text style={styles.errorText}>{errors.gender}</Text> : null}
 
                 <CustomButtonPrimary title="Berechnen" onPress={calculateWaterIntake} />
               </View>
@@ -317,6 +317,11 @@ const styles = StyleSheet.create({
     color: SECONDARY_COLOR,
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  errorText: {
+    color: 'red',
+    marginBottom: 10,
+    textAlign: 'center',
   },
 });
 
