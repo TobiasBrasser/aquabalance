@@ -9,7 +9,7 @@ const SECONDARY_COLOR = '#FFFFFF';
 const TEXT_COLOR = '#000000';
 const LABEL_COLOR = '#758694';
 
-const HomeScreen = () => {
+export default function Profile() {
   const [weight, setWeight] = useState('');
   const [activityLevel, setActivityLevel] = useState('0');
   const [climate, setClimate] = useState('0');
@@ -98,9 +98,9 @@ const HomeScreen = () => {
     }
 
     const baseNeed = Math.min(weightInKg * 20 / 1000, 3);
-    const activityNeed = Math.min(parseFloat(activityLevel), 1.0); 
-    const climateNeed = Math.min(parseFloat(climate), 0.2); 
-    const genderAdjustment = gender === 'male' ? 0.4 : 0; 
+    const activityNeed = Math.min(parseFloat(activityLevel), 1.0);
+    const climateNeed = Math.min(parseFloat(climate), 0.2);
+    const genderAdjustment = gender === 'male' ? 0.4 : 0;
     const individualNeed = baseNeed + activityNeed + climateNeed + genderAdjustment;
 
     const newWaterIntake = { individual: individualNeed.toFixed(2) };
@@ -121,7 +121,7 @@ const HomeScreen = () => {
   return (
     <View style={styles.container}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'android' ? 'padding' : 'height'}
         style={styles.avoidingView}
       >
         <ScrollView contentContainerStyle={styles.scrollContainer}>
@@ -133,21 +133,23 @@ const HomeScreen = () => {
                   <Text style={styles.resultText}>Individualisierter Wasserbedarf: {waterIntake.individual} Liter pro Tag</Text>
                 </View>
                 <CustomButton style={styles.editButton} title="Bearbeiten" onPress={handleEdit} />
-                <Link href="/home">
-                  <Text>Fortschritt eintragen</Text>
+                <TouchableOpacity style={styles.linkButton}>
+                  <Link href="/home">
+                  <Text style={styles.linkText}>Fortschritt eintragen</Text>
                 </Link>
+                </TouchableOpacity>
               </View>
             ) : (
               <View style={styles.formContainer}>
                 <Text style={styles.header}>Wasserbedarf berechnen</Text>
-
+                <Text style={styles.label}>Gewicht (kg):</Text>
                 <TextInput
                   style={styles.input}
                   keyboardType="numeric"
                   value={weight}
                   onChangeText={handleWeightChange}
                   placeholder="Gewicht in kg"
-                  placeholderTextColor="#ccc"
+                  placeholderTextColor="#758694"
                 />
                 {errors.weight ? <Text style={styles.errorText}>{errors.weight}</Text> : null}
 
@@ -173,7 +175,7 @@ const HomeScreen = () => {
                 >
                   <Picker.Item label="Kühl" value="0" />
                   <Picker.Item label="Warm" value="0.2" />
-                  <Picker.Item label="Heiß" value="0.2" />
+                  <Picker.Item label="Heiss" value="0.2" />
                 </Picker>
                 {errors.climate ? <Text style={styles.errorText}>{errors.climate}</Text> : null}
 
@@ -188,7 +190,7 @@ const HomeScreen = () => {
                 </Picker>
                 {errors.gender ? <Text style={styles.errorText}>{errors.gender}</Text> : null}
 
-                <CustomButtonPrimary title="Berechnen" onPress={calculateWaterIntake} />
+                <CustomButton title="Berechnen" onPress={calculateWaterIntake} />
               </View>
             )}
           </SafeAreaView>
@@ -196,20 +198,12 @@ const HomeScreen = () => {
       </KeyboardAvoidingView>
     </View>
   );
-};
+}
 
 const CustomButton = ({ title, onPress, style }) => {
   return (
     <TouchableOpacity style={[styles.button, style]} onPress={onPress}>
       <Text style={styles.buttonText}>{title}</Text>
-    </TouchableOpacity>
-  );
-};
-
-const CustomButtonPrimary = ({ title, onPress }) => {
-  return (
-    <TouchableOpacity style={styles.buttonPrimary} onPress={onPress}>
-      <Text style={styles.buttonTextPrimary}>{title}</Text>
     </TouchableOpacity>
   );
 };
@@ -241,88 +235,91 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   header: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 24,
+    marginBottom: 20,
+    color: TEXT_COLOR,
+  },
+  label: {
+    fontSize: 18,
+    marginBottom: 5,
+    color: LABEL_COLOR,
+  },
+  input: {
+    height: 40,
+    width: '100%',
+    borderColor: '#CED0CE',
+    borderWidth: 1,
+    borderRadius: 5,
+    paddingHorizontal: 10,
+    marginBottom: 15,
+    color: TEXT_COLOR,
+  },
+  picker: {
+    height: 40,
+    width: '100%',
+    borderColor: '#CED0CE',
+    borderWidth: 1,
+    borderRadius: 5,
+    marginBottom: 15,
     color: TEXT_COLOR,
   },
   formContainer: {
     width: '100%',
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingBottom: 20,
   },
-  input: {
-    height: 50,
-    borderColor: PRIMARY_COLOR,
-    borderWidth: 1,
-    borderRadius: 8,
-    marginBottom: 20,
-    paddingHorizontal: 15,
-    backgroundColor: SECONDARY_COLOR,
-    fontSize: 16,
-    color: TEXT_COLOR,
+  button: {
+    backgroundColor: '#01E1FF',
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    borderRadius: 25,
+    marginTop: 20,
   },
-  picker: {
-    height: 50,
-    borderColor: PRIMARY_COLOR,
-    borderWidth: 1,
-    borderRadius: 8,
-    marginBottom: 20,
-    backgroundColor: SECONDARY_COLOR,
-    color: TEXT_COLOR,
+  buttonText: {
+    fontSize: 18,
+    color: '#FFFFFF',
+    textAlign: 'center',
   },
-  label: {
-    color: LABEL_COLOR,
-    marginBottom: 10,
+  errorText: {
+    fontSize: 12,
+    color: 'red',
+    marginBottom: 5,
   },
   resultsContainer: {
+    width: '100%',
     paddingHorizontal: 20,
-    paddingVertical: 40,
-    backgroundColor: PRIMARY_COLOR,
-    borderRadius: 10,
-    marginHorizontal: 20,
+    paddingBottom: 20,
     alignItems: 'center',
   },
   results: {
-    marginTop: 20,
+    backgroundColor: '#E0F8FF',
     padding: 20,
+    borderRadius: 10,
+    marginBottom: 20,
+    width: '100%',
+    alignItems: 'center',
   },
   resultText: {
     fontSize: 18,
     color: TEXT_COLOR,
-    textAlign: 'center',
   },
-  button: {
-    backgroundColor: PRIMARY_COLOR,
-    paddingVertical: 15,
-    paddingHorizontal: 40,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginVertical: 10,
-  },
-  buttonText: {
-    color: TEXT_COLOR,
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  buttonPrimary: {
-    backgroundColor: PRIMARY_COLOR,
-    paddingVertical: 15,
-    paddingHorizontal: 40,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginVertical: 10,
-  },
-  buttonTextPrimary: {
-    color: SECONDARY_COLOR,
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  errorText: {
-    color: 'red',
+  editButton: {
     marginBottom: 10,
-    textAlign: 'center',
   },
+  linkText: {
+    fontSize: 18,
+    color: '#01E1FF',
+    width: 60
+  },
+  linkButton:{
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 25,
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: '#01E1FF',
+  }
 });
-
-export default HomeScreen;

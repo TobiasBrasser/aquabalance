@@ -1,97 +1,140 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, FlatList, TouchableOpacity, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/FontAwesome';
 
-const HistoryScreen = () => {
-  const [history, setHistory] = useState([]);
+export default function History() {
+  const [entries, setEntries] = useState([]);
 
   useEffect(() => {
-    loadHistory();
+    loadEntries();
   }, []);
 
-  const loadHistory = async () => {
+  useFocusEffect(
+    React.useCallback(() => {
+      loadEntries();
+    }, [])
+  );
+
+  const loadEntries = async () => {
     try {
-      const historyData = await AsyncStorage.getItem('@history');
-      if (historyData !== null) {
-        setHistory(JSON.parse(historyData));
-      }
+      const storedEntries = await AsyncStorage.getItem('entries');
+      const entries = storedEntries ? JSON.parse(storedEntries) : [];
+      setEntries(entries);
     } catch (error) {
-      console.error('Error loading history from AsyncStorage:', error);
+      console.error('Failed to load data', error);
     }
   };
 
-  const addHistoryItem = async (loggedAmount) => {
-    const newHistoryItem = { id: Date.now().toString(), loggedAmount: loggedAmount };
-    const updatedHistory = [...history, newHistoryItem];
-    setHistory(updatedHistory);
+  const deleteEntry = async (index) => {
     try {
-      await AsyncStorage.setItem('@history', JSON.stringify(updatedHistory));
+      const updatedEntries = [...entries];
+      updatedEntries.splice(index, 1);
+      await AsyncStorage.setItem('entries', JSON.stringify(updatedEntries));
+      setEntries(updatedEntries);
     } catch (error) {
-      console.error('Error saving history to AsyncStorage:', error);
+      console.error('Failed to delete entry', error);
     }
   };
 
-  const resetLoggedAmount = async () => {
-    try {
-      await AsyncStorage.setItem('@loggedAmount', '0');
-      addHistoryItem(0); // Add history item with loggedAmount reset to 0
-    } catch (error) {
-      console.error('Error resetting logged amount:', error);
+  const confirmDelete = (index) => {
+    Alert.alert(
+      'Eintrag löschen',
+      'Bist Du dir sicher, dass Du diesen Eintrag löschen möchtest?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', onPress: () => deleteEntry(index), style: 'destructive' },
+      ]
+    );
+  };
+
+  const renderEntry = ({ item, index }) => {
+    if (item.section) {
+      return (
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionText}>Neuer Abschnitt: {item.date}</Text>
+          <TouchableOpacity onPress={() => confirmDelete(index)}>
+            <Icon name="trash" size={24} color="red" />
+          </TouchableOpacity>
+        </View>
+      );
     }
+
+    return (
+      <View style={styles.entryContainer}>
+        <View style={styles.entryTextContainer}>
+          <Text style={styles.entryText}>Amount: {item.inputValue} Liter</Text>
+          <Text style={styles.entryText}>Date: {item.dateValue}</Text>
+          <Text style={styles.entryText}>Time: {item.timeValue}</Text>
+        </View>
+        <TouchableOpacity onPress={() => confirmDelete(index)}>
+          <Icon name="trash" size={24} color="red" />
+        </TouchableOpacity>
+      </View>
+    );
   };
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.resetButton} onPress={resetLoggedAmount}>
-        <Text style={styles.buttonText}>Reset Logged Amount</Text>
-      </TouchableOpacity>
+      <Text style={styles.header}>History</Text>
       <FlatList
-        data={history}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.historyItem}>
-            <Text style={styles.historyText}>Logged Amount: {item.loggedAmount.toFixed(2)} Liter</Text>
-          </View>
-        )}
-        contentContainerStyle={styles.historyList}
+        data={entries}
+        renderItem={renderEntry}
+        keyExtractor={(item, index) => index.toString()}
       />
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-    paddingHorizontal: 20,
-    paddingTop: 20,
+    padding: 20,
   },
-  resetButton: {
-    backgroundColor: '#007AFF',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    marginBottom: 20,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
+  header: {
+    fontSize: 24,
     fontWeight: 'bold',
+    marginBottom: 20,
     textAlign: 'center',
   },
-  historyList: {
-    flexGrow: 1,
+  sectionContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 15,
+    marginVertical: 10,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 10,
   },
-  historyItem: {
-    backgroundColor: '#F0F0F0',
-    padding: 10,
-    marginBottom: 10,
-    borderRadius: 8,
+  sectionText: {
+    fontSize: 18,
+    color: 'black',
+    fontWeight: 'bold',
   },
-  historyText: {
-    fontSize: 16,
-    color: '#333',
+  entryContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 15,
+    marginVertical: 10,
+    backgroundColor: '#f8f8f8',
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  entryTextContainer: {
+    flex: 1,
+  },
+  entryText: {
+    fontSize: 18,
+    color: 'black',
   },
 });
-
-export default HistoryScreen;
