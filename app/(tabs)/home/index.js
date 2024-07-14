@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, Image, TouchableOpacity, Modal, TextInput, Button, Dimensions, Alert } from 'react-native';
+import { StyleSheet, Text, View, Image, TouchableOpacity, Modal, TextInput, Dimensions, Alert } from 'react-native';
 import { ProgressBar } from 'react-native-paper';
 import { StatusBar } from 'expo-status-bar';
 import Icon from 'react-native-vector-icons/FontAwesome';
@@ -8,25 +8,52 @@ import { useFocusEffect } from '@react-navigation/native';
 
 const screenWidth = Dimensions.get('window').width;
 
+const PRIMARY_COLOR = '#A7E6FF';
+const SECONDARY_COLOR = '#FFFFFF';
+const TEXT_COLOR = '#000000';
+const LABEL_COLOR = '#758694';
+
 export default function Home({ navigation }) {
   const [modalVisible, setModalVisible] = useState(false);
   const [inputValue, setInputValue] = useState('');
-  const [dateValue, setDateValue] = useState('');
-  const [timeValue, setTimeValue] = useState('');
-  const [totalCapacity, setTotalCapacity] = useState(2500); 
+  const [totalCapacity, setTotalCapacity] = useState(2.5);
   const [loggedAmount, setLoggedAmount] = useState(0);
   const [isEditingCapacity, setIsEditingCapacity] = useState(false);
 
   useEffect(() => {
+    checkExpiration();
     loadLoggedAmount();
-    loadIndividualNeed(); 
+    loadIndividualNeed();
+    
+    const intervalId = setInterval(checkExpiration, 10000); 
+    
+    return () => clearInterval(intervalId); 
   }, []);
 
   useFocusEffect(
     React.useCallback(() => {
-      loadIndividualNeed(); 
+      checkExpiration();
+      loadIndividualNeed();
     }, [])
   );
+
+  const checkExpiration = async () => {
+    try {
+      const savedLastEntryDate = await AsyncStorage.getItem('@lastEntryDate');
+      if (savedLastEntryDate) {
+        const lastEntryDate = new Date(savedLastEntryDate);
+        const currentDate = new Date();
+        const diffTime = Math.abs(currentDate - lastEntryDate);
+        const diffSeconds = diffTime / (1000*60*60);
+
+        if (diffSeconds >= 24) {
+          handleReset();
+        }
+      }
+    } catch (error) {
+      console.error('Error checking expiration date:', error);
+    }
+  };
 
   const loadLoggedAmount = async () => {
     try {
@@ -44,17 +71,27 @@ export default function Home({ navigation }) {
       const savedIndividualNeed = await AsyncStorage.getItem('@individualNeed');
       if (savedIndividualNeed !== null) {
         setTotalCapacity(parseFloat(savedIndividualNeed));
-        setLoggedAmount(0); 
       }
     } catch (error) {
       console.error('Error loading individual need from AsyncStorage:', error);
     }
   };
 
+  const saveEntries = async (newEntry) => {
+    try {
+      const storedEntries = await AsyncStorage.getItem('entries');
+      let entries = storedEntries ? JSON.parse(storedEntries) : [];
+      entries.push(newEntry);
+      await AsyncStorage.setItem('entries', JSON.stringify(entries));
+    } catch (error) {
+      console.error('Failed to save data', error);
+    }
+  };
+
   const saveLoggedAmount = async (newAmount) => {
     try {
       await AsyncStorage.setItem('@loggedAmount', newAmount.toString());
-      setLoggedAmount(newAmount); // Update state after saving
+      setLoggedAmount(newAmount);
     } catch (error) {
       console.error('Error saving logged amount to AsyncStorage:', error);
     }
@@ -63,40 +100,69 @@ export default function Home({ navigation }) {
   const saveIndividualNeed = async (newCapacity) => {
     try {
       await AsyncStorage.setItem('@individualNeed', newCapacity.toString());
-      setTotalCapacity(newCapacity); // Update state after saving
+      setTotalCapacity(newCapacity);
     } catch (error) {
       console.error('Error saving individual need to AsyncStorage:', error);
+    }
+  };
+
+  const saveLastEntryDate = async (date) => {
+    try {
+      await AsyncStorage.setItem('@lastEntryDate', date.toString());
+    } catch (error) {
+      console.error('Error saving last entry date to AsyncStorage:', error);
     }
   };
 
   const handleNewEntry = () => {
     let newAmount = parseFloat(inputValue);
     if (isNaN(newAmount) || newAmount <= 0) {
-      alert('Please enter a valid positive number.');
+      Alert.alert('Invalid Input', 'Please enter a valid positive number.');
       return;
     }
-
+  
     if (isEditingCapacity) {
-      saveIndividualNeed(newAmount); 
-      setIsEditingCapacity(false); 
+      saveIndividualNeed(newAmount);
+      setIsEditingCapacity(false);
     } else {
       const updatedLogged = loggedAmount + newAmount;
-      if (updatedLogged <= totalCapacity) {
-        saveLoggedAmount(updatedLogged); 
-        if (updatedLogged >= totalCapacity) {
-          Alert.alert('Congratulations!', 'You have reached your daily water intake goal!');
-        }
-      } else {
-        alert('Total logged amount cannot exceed total capacity.');
+      if (updatedLogged > totalCapacity) {
+        Alert.alert(
+          'Herzlichen Glückwunsch!',
+          'Du hast deinen täglichen Bedarf gedeckt\n\nHinweis: Die eingetragene Menge überschreitet das Limit. Bitte achte darauf, nicht zu viel zu trinken.'
+        );
+      } else if (updatedLogged === totalCapacity) {
+        Alert.alert('Herzlichen Glückwunsch!', 'Du hast deinen täglichen Bedarf gedeckt');
       }
+      saveLoggedAmount(updatedLogged);
+      const newEntry = { inputValue, dateValue: new Date().toISOString().split('T')[0], timeValue: new Date().toLocaleTimeString() };
+      saveEntries(newEntry);
+      saveLastEntryDate(new Date());
     }
-
+  
     setModalVisible(false);
     setInputValue('');
-    setDateValue('');
-    setTimeValue('');
   };
   
+
+  const handleReset = async () => {
+    try {
+      await AsyncStorage.setItem('@loggedAmount', '0');
+      setLoggedAmount(0);
+
+      const newSection = { section: true, date: new Date().toISOString().split('T')[0] };
+      const storedEntries = await AsyncStorage.getItem('entries');
+      let entries = storedEntries ? JSON.parse(storedEntries) : [];
+      entries.push(newSection);
+      await AsyncStorage.setItem('entries', JSON.stringify(entries));
+      await AsyncStorage.setItem('@lastEntryDate', new Date().toString());
+      
+      Alert.alert('Reset', 'Dein Fortschritt wurde zurückgesetzt.');
+    } catch (error) {
+      console.error('Error resetting logged amount to AsyncStorage:', error);
+    }
+  };
+
   const progressValue = loggedAmount / totalCapacity;
   const remainingAmount = totalCapacity - loggedAmount;
 
@@ -104,17 +170,23 @@ export default function Home({ navigation }) {
     <View style={styles.container}>
       <Image source={require('../../../assets/bottle.png')} style={styles.bottleImage} />
       <TouchableOpacity style={styles.newEntryButton} onPress={() => setModalVisible(true)}>
-        <Icon name="plus" size={24} color="#01E1FF" />
-        <Text style={styles.newEntryText}>New Entry</Text>
+        <Icon name="plus" size={24} color="#fff" />
+        <Text style={styles.newEntryText}>Neuer Eintrag</Text>
       </TouchableOpacity>
       <View style={styles.progressContainer}>
-        <Text style={styles.progressText}>{loggedAmount.toFixed(2)} Liter - {(progressValue * 100).toFixed(0)}%</Text>
-        <Text style={styles.remainingText}>Remaining: {remainingAmount.toFixed(2)} Liter</Text>
-        <ProgressBar progress={progressValue} color="#01E1FF" style={styles.progressBar} />
+        <View style={styles.progressRow}>
+          <Text style={styles.progressText}>{loggedAmount.toFixed(2)} Liter - {(progressValue * 100).toFixed(0)}%</Text>
+          <ProgressBar progress={progressValue} color="#01E1FF" style={styles.progressBar} />
+        </View>
+        <Text style={styles.remainingText}>Verbleibend: {remainingAmount.toFixed(2)} Liter</Text>
+
         <TouchableOpacity style={styles.editButton} onPress={() => {
           setIsEditingCapacity(true);
           setModalVisible(true);
         }}>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.resetButton} onPress={handleReset}>
+          <Text style={styles.resetText}>Reset</Text>
         </TouchableOpacity>
       </View>
       <StatusBar style="auto" />
@@ -127,34 +199,27 @@ export default function Home({ navigation }) {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalView}>
-            <Text style={styles.modalText}>{isEditingCapacity ? 'Edit Water Need' : 'Add New Entry'}</Text>
+            <Text style={styles.modalText}>Neuen Eintrag hinzufügen</Text>
+
+            <Text style={styles.label}>Getrunkene Menge in Liter</Text>
             <TextInput
               style={styles.input}
-              placeholder={isEditingCapacity ? 'Enter new capacity (Liter)' : 'Enter amount'}
+              placeholder='Liter'
               keyboardType="numeric"
               value={inputValue}
               onChangeText={setInputValue}
             />
-            <TextInput
-              style={styles.input}
-              placeholder="Enter date (YYYY-MM-DD)"
-              value={dateValue}
-              onChangeText={setDateValue}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Enter time (HH:MM)"
-              value={timeValue}
-              onChangeText={setTimeValue}
-            />
-            <Button title="Save" onPress={handleNewEntry} />
-            <Button title="Cancel" onPress={() => {
-              setModalVisible(false);
-              setIsEditingCapacity(false);
-              setInputValue('');
-              setDateValue('');
-              setTimeValue('');
-            }} />
+
+            
+
+            <View style={styles.saveAndCancelView}>
+              <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
+                <Text style={styles.cancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.saveButton} onPress={handleNewEntry}>
+                <Text style={styles.saveText}>Save</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -183,7 +248,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 25,
-    backgroundColor: '#fff',
+    backgroundColor: '#01E1FF',
     borderWidth: 2,
     borderColor: '#01E1FF',
     marginBottom: 20,
@@ -191,7 +256,7 @@ const styles = StyleSheet.create({
   newEntryText: {
     marginLeft: 10,
     fontSize: 18,
-    color: '#01E1FF',
+    color: '#fff',
   },
   progressContainer: {
     width: screenWidth - 40,
@@ -212,7 +277,10 @@ const styles = StyleSheet.create({
     height: 10,
     width: '100%',
     borderRadius: 5,
-    backgroundColor: '#D3D3D3', 
+    backgroundColor: '#D3D3D3',
+  },
+  editButton: {
+    marginBottom: 20,
   },
   modalContainer: {
     flex: 1,
@@ -221,11 +289,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalView: {
-    width: 300,
+    width: 320,
     backgroundColor: 'white',
     borderRadius: 20,
     padding: 35,
-    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -250,4 +317,65 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     paddingHorizontal: 10,
   },
+  saveButton: {
+    display: "flex",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 22,
+    borderRadius: 25,
+    backgroundColor: '#01E1FF',
+    borderWidth: 2,
+    borderColor: '#01E1FF',
+
+  },
+  cancelButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 25,
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: '#01E1FF',
+  },
+  saveText: {
+    fontSize: 18,
+    width: 60,
+    color: '#fff',
+    paddingLeft: 10
+  },
+  cancelText: {
+    fontSize: 18,
+    color: '#01E1FF',
+    width: 60
+  },
+  saveAndCancelView: {
+    marginTop: 30,
+    display: "flex",
+    flexDirection: "row",
+    gap: 40
+  },
+  label: {
+    color: LABEL_COLOR,
+    marginBottom: 10,
+    alignItems: "flex-start"
+  },
+  resetText: {
+    fontSize: 18,
+    color: '#01E1FF',
+  },
+  resetButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 25,
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: '#01E1FF',
+    marginBottom: 20,
+  }
 });

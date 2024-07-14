@@ -1,97 +1,196 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, FlatList, TouchableOpacity, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/FontAwesome';
 
-const HistoryScreen = () => {
-  const [history, setHistory] = useState([]);
+export default function History() {
+  const [entries, setEntries] = useState([]);
+  const [collapsedSections, setCollapsedSections] = useState({});
 
   useEffect(() => {
-    loadHistory();
+    loadEntries();
   }, []);
 
-  const loadHistory = async () => {
+  useFocusEffect(
+    React.useCallback(() => {
+      loadEntries();
+    }, [])
+  );
+
+  const loadEntries = async () => {
     try {
-      const historyData = await AsyncStorage.getItem('@history');
-      if (historyData !== null) {
-        setHistory(JSON.parse(historyData));
+      const storedEntries = await AsyncStorage.getItem('entries');
+      const parsedEntries = storedEntries ? JSON.parse(storedEntries) : [];
+      setEntries(parsedEntries);
+      
+      const initialCollapsed = {};
+      parsedEntries.forEach((item, index) => {
+        if (item.section) {
+          initialCollapsed[index] = true; 
+        }
+      });
+      setCollapsedSections(initialCollapsed);
+    } catch (error) {
+      console.error('Failed to load data', error);
+    }
+  };
+
+  const toggleSection = (index) => {
+    setCollapsedSections(prevState => {
+      const updatedCollapsed = { ...prevState };
+      updatedCollapsed[index] = !updatedCollapsed[index];
+  
+      let i = index + 1;
+      while (i < entries.length && !entries[i].section) {
+        updatedCollapsed[i] = !updatedCollapsed[index];
+        i++;
       }
+      return updatedCollapsed;
+    });
+  };
+
+  const deleteEntry = async (index) => {
+    try {
+      const updatedEntries = [...entries];
+      updatedEntries.splice(index, 1);
+      await AsyncStorage.setItem('entries', JSON.stringify(updatedEntries));
+      setEntries(updatedEntries);
     } catch (error) {
-      console.error('Error loading history from AsyncStorage:', error);
+      console.error('Failed to delete entry', error);
     }
   };
 
-  const addHistoryItem = async (loggedAmount) => {
-    const newHistoryItem = { id: Date.now().toString(), loggedAmount: loggedAmount };
-    const updatedHistory = [...history, newHistoryItem];
-    setHistory(updatedHistory);
+  const confirmDelete = (index) => {
+    Alert.alert(
+      'Eintrag löschen',
+      'Bist Du dir sicher, dass Du diesen Eintrag löschen möchtest?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', onPress: () => deleteEntry(index), style: 'destructive' },
+      ]
+    );
+  };
+
+  const deleteSection = async (index) => {
     try {
-      await AsyncStorage.setItem('@history', JSON.stringify(updatedHistory));
+      const updatedEntries = [...entries];
+      const sectionDate = updatedEntries[index].date;
+  
+      let startIndex = index + 1;
+      let endIndex = startIndex;
+  
+      while (endIndex < updatedEntries.length && !(updatedEntries[endIndex].section)) {
+        endIndex++;
+      }
+ 
+      updatedEntries.splice(index, endIndex - startIndex + 1);
+  
+      await AsyncStorage.setItem('entries', JSON.stringify(updatedEntries));
+      setEntries(updatedEntries);
     } catch (error) {
-      console.error('Error saving history to AsyncStorage:', error);
+      console.error('Failed to delete section', error);
     }
   };
 
-  const resetLoggedAmount = async () => {
-    try {
-      await AsyncStorage.setItem('@loggedAmount', '0');
-      addHistoryItem(0); // Add history item with loggedAmount reset to 0
-    } catch (error) {
-      console.error('Error resetting logged amount:', error);
+  const renderEntry = ({ item, index }) => {
+    if (item.section) {
+      return (
+        <TouchableOpacity onPress={() => toggleSection(index)}>
+          <View style={styles.sectionContainer}>
+            <View style={styles.sectionHeader}>
+              <Icon
+                name={collapsedSections[index] ? "caret-right" : "caret-down"}
+                size={24}
+                color="#fff"
+              />
+              <Text style={styles.sectionText}>Neuer Abschnitt: {item.date}</Text>
+            </View>
+            <TouchableOpacity onPress={() => deleteSection(index)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Icon name="trash" size={24} color="red" />
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      );
     }
+
+    if (collapsedSections[index]) {
+      return null; // Eintrag wird nicht gerendert, wenn der Abschnitt eingeklappt ist
+    }
+
+    return (
+      <View style={styles.entryContainer}>
+        <View style={styles.entryTextContainer}>
+          <Text style={styles.entryText}>Amount: {item.inputValue} Liter</Text>
+          <Text style={styles.entryText}>Date: {item.dateValue}</Text>
+          <Text style={styles.entryText}>Time: {item.timeValue}</Text>
+        </View>
+        <TouchableOpacity onPress={() => confirmDelete(index)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Icon name="trash" size={24} color="red" />
+        </TouchableOpacity>
+      </View>
+    );
   };
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.resetButton} onPress={resetLoggedAmount}>
-        <Text style={styles.buttonText}>Reset Logged Amount</Text>
-      </TouchableOpacity>
+      <Text style={styles.header}>History</Text>
       <FlatList
-        data={history}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.historyItem}>
-            <Text style={styles.historyText}>Logged Amount: {item.loggedAmount.toFixed(2)} Liter</Text>
-          </View>
-        )}
-        contentContainerStyle={styles.historyList}
+        data={entries}
+        renderItem={renderEntry}
+        keyExtractor={(item, index) => index.toString()}
       />
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-    paddingHorizontal: 20,
-    paddingTop: 20,
+    padding: 20,
   },
-  resetButton: {
-    backgroundColor: '#007AFF',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    marginBottom: 20,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
+  header: {
+    fontSize: 24,
     fontWeight: 'bold',
+    marginBottom: 20,
     textAlign: 'center',
   },
-  historyList: {
-    flexGrow: 1,
+  sectionContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 15,
+    marginVertical: 10,
+    backgroundColor: '#01E1FF',
+    borderRadius: 10,
   },
-  historyItem: {
-    backgroundColor: '#F0F0F0',
-    padding: 10,
-    marginBottom: 10,
-    borderRadius: 8,
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  historyText: {
-    fontSize: 16,
-    color: '#333',
+  sectionText: {
+    fontSize: 18,
+    color: '#fff',
+    fontWeight: 'bold',
+    marginLeft: 10,
+  },
+  entryContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 15,
+    marginVertical: 10,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    borderColor: '#01E1FF',
+    borderWidth: 2,
+  },
+  entryTextContainer: {
+    flex: 1,
+  },
+  entryText: {
+    fontSize: 18,
+    color: '#01E1FF',
   },
 });
-
-export default HistoryScreen;
