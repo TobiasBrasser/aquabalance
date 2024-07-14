@@ -16,7 +16,11 @@ const LABEL_COLOR = '#758694';
 export default function Home({ navigation }) {
   const [modalVisible, setModalVisible] = useState(false);
   const [inputValue, setInputValue] = useState('');
+<<<<<<< HEAD
   const [totalCapacity, setTotalCapacity] = useState(2.5);
+=======
+  const [totalCapacity, setTotalCapacity] = useState(2.5); 
+>>>>>>> 3bedd1e43ceef7c4b4284fea7574139cc8b2a534
   const [loggedAmount, setLoggedAmount] = useState(0);
   const [isEditingCapacity, setIsEditingCapacity] = useState(false);
 
@@ -24,15 +28,21 @@ export default function Home({ navigation }) {
     checkExpiration();
     loadLoggedAmount();
     loadIndividualNeed();
+<<<<<<< HEAD
     
     const intervalId = setInterval(checkExpiration, 10000); 
     
     return () => clearInterval(intervalId); 
+=======
+>>>>>>> 3bedd1e43ceef7c4b4284fea7574139cc8b2a534
   }, []);
 
   useFocusEffect(
     React.useCallback(() => {
+<<<<<<< HEAD
       checkExpiration();
+=======
+>>>>>>> 3bedd1e43ceef7c4b4284fea7574139cc8b2a534
       loadIndividualNeed();
     }, [])
   );
@@ -100,7 +110,11 @@ export default function Home({ navigation }) {
   const saveIndividualNeed = async (newCapacity) => {
     try {
       await AsyncStorage.setItem('@individualNeed', newCapacity.toString());
+<<<<<<< HEAD
       setTotalCapacity(newCapacity);
+=======
+      setTotalCapacity(newCapacity); 
+>>>>>>> 3bedd1e43ceef7c4b4284fea7574139cc8b2a534
     } catch (error) {
       console.error('Error saving individual need to AsyncStorage:', error);
     }
@@ -126,6 +140,7 @@ export default function Home({ navigation }) {
       setIsEditingCapacity(false);
     } else {
       const updatedLogged = loggedAmount + newAmount;
+<<<<<<< HEAD
       if (updatedLogged > totalCapacity) {
         Alert.alert(
           'Herzlichen Glückwunsch!',
@@ -133,6 +148,17 @@ export default function Home({ navigation }) {
         );
       } else if (updatedLogged === totalCapacity) {
         Alert.alert('Herzlichen Glückwunsch!', 'Du hast deinen täglichen Bedarf gedeckt');
+=======
+      if (updatedLogged <= totalCapacity) {
+        saveLoggedAmount(updatedLogged);
+        if (updatedLogged >= totalCapacity) {
+          Alert.alert('Herzlichen Glückwunsch!', 'Du hast deinen täglichen Bedarf gedeckt');
+        }
+        const newEntry = { inputValue, dateValue: new Date().toISOString().split('T')[0], timeValue: new Date().toLocaleTimeString() };
+        saveEntries(newEntry);
+      } else {
+        Alert.alert('Error', 'Die eingetragene Menge überschreitet das Limit');
+>>>>>>> 3bedd1e43ceef7c4b4284fea7574139cc8b2a534
       }
       saveLoggedAmount(updatedLogged);
       const newEntry = { inputValue, dateValue: new Date().toISOString().split('T')[0], timeValue: new Date().toLocaleTimeString() };
@@ -142,6 +168,7 @@ export default function Home({ navigation }) {
   
     setModalVisible(false);
     setInputValue('');
+<<<<<<< HEAD
   };
   
 
@@ -163,6 +190,26 @@ export default function Home({ navigation }) {
     }
   };
 
+=======
+  };
+
+  const handleReset = async () => {
+    try {
+      await AsyncStorage.setItem('@loggedAmount', '0');
+      setLoggedAmount(0);
+  
+      const newSection = { section: true, date: new Date().toISOString().split('T')[0] }; 
+      const storedEntries = await AsyncStorage.getItem('entries');
+      let entries = storedEntries ? JSON.parse(storedEntries) : [];
+      entries.push(newSection);
+      await AsyncStorage.setItem('entries', JSON.stringify(entries));
+    } catch (error) {
+      console.error('Error resetting logged amount to AsyncStorage:', error);
+    }
+  };
+  
+
+>>>>>>> 3bedd1e43ceef7c4b4284fea7574139cc8b2a534
   const progressValue = loggedAmount / totalCapacity;
   const remainingAmount = totalCapacity - loggedAmount;
 
@@ -179,14 +226,23 @@ export default function Home({ navigation }) {
           <ProgressBar progress={progressValue} color="#01E1FF" style={styles.progressBar} />
         </View>
         <Text style={styles.remainingText}>Verbleibend: {remainingAmount.toFixed(2)} Liter</Text>
+<<<<<<< HEAD
 
+=======
+        
+>>>>>>> 3bedd1e43ceef7c4b4284fea7574139cc8b2a534
         <TouchableOpacity style={styles.editButton} onPress={() => {
           setIsEditingCapacity(true);
           setModalVisible(true);
         }}>
         </TouchableOpacity>
+<<<<<<< HEAD
         <TouchableOpacity style={styles.resetButton} onPress={handleReset}>
           <Text style={styles.resetText}>Reset</Text>
+=======
+        <TouchableOpacity style={styles.resetButton}>
+          <Text style={styles.resetText} onPress={handleReset}>Reset</Text>
+>>>>>>> 3bedd1e43ceef7c4b4284fea7574139cc8b2a534
         </TouchableOpacity>
       </View>
       <StatusBar style="auto" />
@@ -210,6 +266,7 @@ export default function Home({ navigation }) {
               onChangeText={setInputValue}
             />
 
+<<<<<<< HEAD
             
 
             <View style={styles.saveAndCancelView}>
@@ -218,6 +275,32 @@ export default function Home({ navigation }) {
               </TouchableOpacity>
               <TouchableOpacity style={styles.saveButton} onPress={handleNewEntry}>
                 <Text style={styles.saveText}>Save</Text>
+=======
+            <Text style={styles.label}>Datum</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="YYYY-MM-DD"
+              value={new Date().toISOString().split('T')[0]}
+              editable={false} 
+            />
+
+            <Text style={styles.label}>Uhrzeit</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="HH:MM"
+              value={new Date().toLocaleTimeString()}
+              editable={false} 
+            />
+
+            <View style={styles.saveAndCancelView}>
+              <TouchableOpacity style={styles.cancelButton}>
+                <Text style={styles.cancelText} onPress={() => {
+                  setModalVisible(false);
+                }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.saveButton}>
+                <Text style={styles.saveText} onPress={handleNewEntry}>Save</Text>
+>>>>>>> 3bedd1e43ceef7c4b4284fea7574139cc8b2a534
               </TouchableOpacity>
             </View>
           </View>
@@ -282,6 +365,9 @@ const styles = StyleSheet.create({
   editButton: {
     marginBottom: 20,
   },
+  editButton: {
+    marginBottom: 20,
+  },
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -330,6 +416,10 @@ const styles = StyleSheet.create({
     borderColor: '#01E1FF',
 
   },
+<<<<<<< HEAD
+=======
+
+>>>>>>> 3bedd1e43ceef7c4b4284fea7574139cc8b2a534
   cancelButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -340,12 +430,20 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#01E1FF',
   },
+<<<<<<< HEAD
+=======
+
+>>>>>>> 3bedd1e43ceef7c4b4284fea7574139cc8b2a534
   saveText: {
     fontSize: 18,
     width: 60,
     color: '#fff',
     paddingLeft: 10
   },
+<<<<<<< HEAD
+=======
+
+>>>>>>> 3bedd1e43ceef7c4b4284fea7574139cc8b2a534
   cancelText: {
     fontSize: 18,
     color: '#01E1FF',

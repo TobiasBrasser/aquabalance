@@ -99,7 +99,11 @@ export default function Profile() {
 
     const baseNeed = Math.min(weightInKg * 20 / 1000, 3);
     const activityNeed = Math.min(parseFloat(activityLevel), 1.0);
+<<<<<<< HEAD
     const climateNeed = Math.min(parseFloat(climate), 0.5);
+=======
+    const climateNeed = Math.min(parseFloat(climate), 0.2);
+>>>>>>> 3bedd1e43ceef7c4b4284fea7574139cc8b2a534
     const genderAdjustment = gender === 'male' ? 0.4 : 0;
     const individualNeed = baseNeed + activityNeed + climateNeed + genderAdjustment;
 
@@ -121,7 +125,7 @@ export default function Profile() {
   return (
     <View style={styles.container}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'android' ? 'padding' : 'height'}
         style={styles.avoidingView}
       >
         <ScrollView contentContainerStyle={styles.scrollContainer}>
@@ -176,8 +180,13 @@ export default function Profile() {
                   onValueChange={handleClimateChange}
                 >
                   <Picker.Item label="Kühl" value="0" />
+<<<<<<< HEAD
                   <Picker.Item label="Warm" value="1" />
                   <Picker.Item label="Heiss" value="2" />
+=======
+                  <Picker.Item label="Warm" value="0.2" />
+                  <Picker.Item label="Heiss" value="0.2" />
+>>>>>>> 3bedd1e43ceef7c4b4284fea7574139cc8b2a534
                 </Picker>
                 {errors.climate ? <Text style={styles.errorText}>{errors.climate}</Text> : null}
 
@@ -287,10 +296,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: 'red',
     marginBottom: 5,
+<<<<<<< HEAD
   },
   result: {
     fontSize: 24,
     fontWeight: "800"
+=======
+>>>>>>> 3bedd1e43ceef7c4b4284fea7574139cc8b2a534
   },
   resultsContainer: {
     width: '100%',
@@ -328,4 +340,8 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#01E1FF',
   }
+<<<<<<< HEAD
 });     
+=======
+});
+>>>>>>> 3bedd1e43ceef7c4b4284fea7574139cc8b2a534
